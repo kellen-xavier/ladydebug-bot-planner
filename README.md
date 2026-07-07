@@ -6,7 +6,7 @@ report ao fechar o dia.
 
 ## Arquitetura (hexagonal / ports & adapters)
 
-```
+```txt
 src/daily/
 ├── core/            # regras de negócio puras (sem I/O, sem plataforma)
 │   ├── models.py        # DaySession, Entry, Task, máquina de estados
