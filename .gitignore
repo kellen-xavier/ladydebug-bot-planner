@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Testes / cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambiente
+.venv/
+venv/
+.env
+
+# Banco local
+*.db
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
