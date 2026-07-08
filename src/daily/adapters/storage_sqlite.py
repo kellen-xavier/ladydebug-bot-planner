@@ -81,6 +81,16 @@ class SqliteStorage:
         row = self._conn.execute("SELECT data FROM sessions WHERE id = ?", (session_id,)).fetchone()
         return self._hydrate_session(row[0]) if row else None
 
+    def get_last_closed_session(self, user_id: str) -> DaySession | None:
+        rows = self._conn.execute(
+            "SELECT data FROM sessions WHERE user_id = ? AND status = ?",
+            (user_id, SessionStatus.FECHADA.value),
+        ).fetchall()
+        sessions = [self._hydrate_session(r[0]) for r in rows]
+        if not sessions:
+            return None
+        return max(sessions, key=lambda s: s.ended_at)
+
     def _hydrate_session(self, raw: str) -> DaySession:
         d = json.loads(raw)
         session = DaySession(
