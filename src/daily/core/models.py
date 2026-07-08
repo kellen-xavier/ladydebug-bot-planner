@@ -2,13 +2,13 @@
 
 Tudo aqui é testável isoladamente (é o coração da arquitetura hexagonal).
 """
+
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
-import uuid
 
 
 def _new_id() -> str:
@@ -53,19 +53,20 @@ class InvalidTransition(Exception):
 @dataclass
 class Entry:
     """Um 'movimento do dia': um link, commit, doc, nota, reunião, etc."""
+
     type: EntryType
     raw_input: str
     title: str = ""
     summary: str = ""
     metadata: dict = field(default_factory=dict)
     id: str = field(default_factory=_new_id)
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
 
 @dataclass
 class VoiceInterval:
     joined_at: datetime
-    left_at: Optional[datetime] = None
+    left_at: datetime | None = None
 
     def seconds(self) -> int:
         if self.left_at is None:
@@ -79,7 +80,7 @@ class DaySession:
     channel_id: str
     started_at: datetime
     id: str = field(default_factory=_new_id)
-    ended_at: Optional[datetime] = None
+    ended_at: datetime | None = None
     status: SessionStatus = SessionStatus.ABERTA
     entries: list[Entry] = field(default_factory=list)
     voice: list[VoiceInterval] = field(default_factory=list)
@@ -95,8 +96,8 @@ class Task:
     status: TaskStatus = TaskStatus.PENDENTE
     links: list[dict] = field(default_factory=list)  # {"url":..., "comment":...}
     feedback: str = ""
-    created_at: Optional[datetime] = None
-    last_activity_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    last_activity_at: datetime | None = None
 
     def can_transition_to(self, target: TaskStatus) -> bool:
         return target in ALLOWED_TRANSITIONS[self.status]

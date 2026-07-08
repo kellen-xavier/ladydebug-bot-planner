@@ -1,4 +1,4 @@
-# Bot Daily Planner (Fase 0)
+# Bot Daily Planner
 
 Bot de "daily updates" para **Discord**, com o núcleo já preparado para **Slack**
 sem reescrita. Compila os movimentos do dia (notas, links, commits/PRs) e gera um
@@ -37,6 +37,21 @@ python -m pip install -e ".[dev]"
 pytest
 ```
 
+## Qualidade e segurança
+
+```bash
+./.venv/bin/ruff check .
+./.venv/bin/ruff format .
+./.venv/bin/python -m pip_audit
+./.venv/bin/python -m bandit -r src
+```
+
+`pip-audit` verifica vulnerabilidades conhecidas nas dependências instaladas.
+`bandit` faz análise estática de segurança no código em `src/`.
+
+Antes de produção, gere um lockfile para fixar versões transitivas e tornar builds
+reprodutíveis. Opções recomendadas para este projeto: `pip-tools` ou `uv`.
+
 ## Rodar o bot
 
 ```bash
@@ -56,6 +71,22 @@ set -a; source .env; set +a
 
 Comandos disponíveis nesta fase: `/inicio`, `/nota`, `/link`, `/task`, `/fim`,
 e contagem de tempo em canal de voz (Discord).
+
+### Uso seguro do DB_PATH
+
+`DB_PATH` define onde o SQLite local será criado. Se não for informado, o bot usa
+`daily.db` na raiz do projeto.
+
+Boas práticas:
+
+- Use um caminho local controlado, por exemplo `daily.db` ou `data/daily.db`.
+- Não versionar o banco: arquivos `*.db` já estão no `.gitignore`.
+- Não coloque tokens, senhas ou dados sensíveis no valor de `DB_PATH`.
+- Garanta que o diretório pai exista antes de iniciar o bot.
+- Não aponte `DB_PATH` para um diretório; ele deve ser o caminho de um arquivo SQLite.
+
+O bot valida `DB_PATH` ao iniciar e falha cedo se o valor estiver vazio, apontar para
+um diretório ou usar um diretório pai inexistente.
 
 ### Testar localmente em um servidor Discord
 

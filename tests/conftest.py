@@ -1,12 +1,12 @@
 """Dublês (fakes) — permitem testar o núcleo sem SQLite, rede ou Discord."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 import pytest
 
-from daily.core.models import DaySession, Task, SessionStatus
+from daily.core.models import DaySession, SessionStatus, Task
 from daily.ports import FetchedPage, VCSItem
 
 
@@ -19,6 +19,7 @@ class FakeClock:
 
     def advance(self, **kwargs) -> None:
         from datetime import timedelta
+
         self._now = self._now + timedelta(**kwargs)
 
 
@@ -30,19 +31,29 @@ class FakeStorage:
     def save_session(self, session: DaySession) -> None:
         self.sessions[session.id] = session
 
-    def get_open_session(self, user_id: str) -> Optional[DaySession]:
+    def get_open_session(self, user_id: str) -> DaySession | None:
         for s in self.sessions.values():
             if s.user_id == user_id and s.status is SessionStatus.ABERTA:
                 return s
         return None
 
-    def get_session(self, session_id: str) -> Optional[DaySession]:
+    def get_session(self, session_id: str) -> DaySession | None:
         return self.sessions.get(session_id)
+
+    def get_last_closed_session(self, user_id: str) -> DaySession | None:
+        closed = [
+            s
+            for s in self.sessions.values()
+            if s.user_id == user_id and s.status is SessionStatus.FECHADA
+        ]
+        if not closed:
+            return None
+        return max(closed, key=lambda s: s.ended_at)
 
     def save_task(self, task: Task) -> None:
         self.tasks[task.id] = task
 
-    def get_task(self, task_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str) -> Task | None:
         return self.tasks.get(task_id)
 
     def list_tasks(self) -> list[Task]:

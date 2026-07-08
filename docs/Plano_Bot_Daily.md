@@ -8,7 +8,7 @@
 
 A sua exigência mais forte ("faço os testes no Discord, mas preciso que seja compatível com Slack") define a arquitetura inteira. A resposta certa é **arquitetura hexagonal (ports & adapters)**:
 
-```txt
+```
                  ┌─────────────────────────────┐
    Discord  ───▶ │                             │
    Slack    ───▶ │   ADAPTERS (mensageria)     │
@@ -67,7 +67,7 @@ Uma `day_session` agrega **todas** as `entries` e o tempo de voz daquele dia. O 
 
 ## 4. Ciclo do dia
 
-```txt
+```
 /inicio  ──▶ cria day_session (status=aberta), responde "Dia iniciado 08:32"
    │
    │  durante o dia (em qualquer ordem, sem pressa):
@@ -100,7 +100,6 @@ A abstração `VCS` (uma port) faz GitHub e Azure DevOps compartilharem o mesmo 
 ## 6. Máquina de estados das tarefas
 
 `Pendente → Em Andamento → Concluído → Aceito`, com:
-
 - **detecção de travamento**: se `last_activity_at` passa de X dias em "Em Andamento", o bot sinaliza (o "autorreparo/alerta" do seu doc)
 - `/task-status` mostra quais estão perto de terminar
 - `/feedback` grava o "task feedback" do que foi feito
@@ -121,7 +120,7 @@ Isso é um ótimo primeiro alvo de TDD: a transição de estados é lógica pura
 Os mesmos comandos existem nas duas plataformas (slash commands do Discord e do Slack apontam para o mesmo handler do núcleo):
 
 | Comando | O que faz |
-| --- | --- |
+|---|---|
 | `/inicio` | Abre o dia |
 | `/fim` | Fecha o dia e gera o report |
 | `/nota <texto>` | Registra uma atividade em texto |

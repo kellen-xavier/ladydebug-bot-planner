@@ -3,14 +3,13 @@
 Discord e Slack traduzem seus eventos em chamadas a estes métodos e formatam
 o retorno. Nenhuma regra de negócio vive nos adaptadores de plataforma.
 """
-from __future__ import annotations
 
-from datetime import timedelta
+from __future__ import annotations
 
 from daily.core.day_service import DayService
 from daily.core.link_ingest import LinkIngestor
-from daily.core.models import Entry, EntryType, TaskStatus
-from daily.core.report import build_report
+from daily.core.models import Entry, EntryType
+from daily.core.report import build_recap, build_report
 from daily.core.task_service import TaskService
 
 
@@ -28,15 +27,22 @@ class CommandRouter:
         self._storage = storage
 
     def inicio(self, user_id: str, channel_id: str) -> str:
+        previous = self._storage.get_last_closed_session(user_id)
+        tasks = self._storage.list_tasks()
         s = self._day.start_day(user_id, channel_id)
-        return f"🟢 Dia iniciado às {s.started_at.strftime('%H:%M')}."
+        msg = f"🟢 Dia iniciado às {s.started_at.strftime('%H:%M')}."
+        recap = build_recap(previous, tasks)
+        return f"{recap}\n\n{msg}" if recap else msg
 
     def nota(self, user_id: str, texto: str) -> str:
         self._day.add_entry(user_id, Entry(type=EntryType.NOTA, raw_input=texto, title=texto))
         return "📝 Nota registrada."
 
     def link(self, user_id: str, url: str, comentario: str = "") -> str:
-        entry = self._ingestor.ingest(url, comentario)
+        try:
+            entry = self._ingestor.ingest(url, comentario)
+        except Exception:
+            return "⚠️ Não consegui processar esse link agora. Tente novamente mais tarde."
         self._day.add_entry(user_id, entry)
         return f"🔗 Registrado: {entry.title}"
 
