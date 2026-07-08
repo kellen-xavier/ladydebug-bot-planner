@@ -7,11 +7,33 @@ O summarizer via LLM é deixado como implementação plugável — a chamada rea
 from __future__ import annotations
 
 import ipaddress
+import re
 import socket
 from datetime import datetime
+from html import unescape
 from urllib.parse import urlparse
 
 from daily.ports import FetchedPage
+
+_TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+_STRIP_BLOCKS_RE = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"\s+")
+
+
+def extract_text_from_html(html: str) -> tuple[str, str]:
+    """Extrai (título, texto limpo) de um HTML, sem dependências externas.
+
+    Descarta <script>/<style> e qualquer outra tag, deixando só o texto
+    visível — evita despejar marcação crua em resumos e reports.
+    """
+    title_match = _TITLE_RE.search(html)
+    title = _WS_RE.sub(" ", unescape(title_match.group(1))).strip() if title_match else ""
+
+    without_blocks = _STRIP_BLOCKS_RE.sub(" ", html)
+    without_tags = _TAG_RE.sub(" ", without_blocks)
+    text = _WS_RE.sub(" ", unescape(without_tags)).strip()
+    return title, text
 
 
 def _is_blocked_ip(address: str) -> bool:
@@ -81,12 +103,12 @@ class SimpleFetcher:
             raise RuntimeError("Instale 'requests' para o fetcher de páginas.") from exc
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        # Extração mínima; substituir por extractor dedicado na Fase 1.
+        title, text = extract_text_from_html(resp.text[:20000])
         return FetchedPage(
-            title=url.rsplit("/", 1)[-1],
+            title=title or url.rsplit("/", 1)[-1],
             author="",
             published_at="",
-            text=resp.text[:20000],
+            text=text,
         )
 
 

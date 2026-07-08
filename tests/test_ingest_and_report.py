@@ -2,8 +2,8 @@ from conftest import FakeFetcher, FakeGitHub, FakeSummarizer
 from daily.command_router import CommandRouter
 from daily.core.day_service import DayService
 from daily.core.link_ingest import LinkIngestor
-from daily.core.models import EntryType, TaskStatus
-from daily.core.report import build_report
+from daily.core.models import Entry, EntryType, Task, TaskStatus
+from daily.core.report import build_recap, build_report
 from daily.core.task_service import TaskService
 
 
@@ -39,8 +39,6 @@ def test_report_agrupa_e_e_conciso(storage, clock):
 
     day.start_day("u1", "c1")
     day.add_entry("u1", ingestor.ingest("https://github.com/acme/app/commit/abc"))
-    from daily.core.models import Entry
-
     day.add_entry("u1", Entry(type=EntryType.NOTA, raw_input="revisei a doc de arquitetura"))
     t = tasks.create_task("implementar /fim")
     tasks.advance(t.id, TaskStatus.EM_ANDAMENTO)
@@ -69,6 +67,26 @@ def test_erro_de_fetch_nao_quebra_fechamento_do_dia(storage, clock):
     assert "Report do dia" in report
 
 
+def test_report_separa_links_de_tarefas(storage, clock):
+    day = DayService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+
+    day.start_day("u1", "c1")
+    day.add_entry("u1", ingestor.ingest("https://exemplo.com/artigo"))
+    session = day.close_day("u1")
+
+    task = Task(title="Criar Pipeline no Github Actions", status=TaskStatus.PENDENTE)
+    report = build_report(session, [task])
+
+    links_idx = report.index("🔗 Links e referências")
+    task_idx = report.index("🗂 Tarefas")
+    assert links_idx < task_idx
+    # a URL do link aparece na seção de links, não misturada com a de tarefas
+    assert "https://exemplo.com/artigo" in report[links_idx:task_idx]
+    assert "https://exemplo.com/artigo" not in report[task_idx:]
+    assert task.title not in report[links_idx:task_idx]
+
+
 def test_erro_de_resumo_nao_quebra_fechamento_do_dia(storage, clock):
     day = DayService(storage, clock)
     tasks = TaskService(storage, clock)
@@ -82,3 +100,43 @@ def test_erro_de_resumo_nao_quebra_fechamento_do_dia(storage, clock):
     assert "Não consegui processar esse link" in msg
     assert "SECRET" not in msg
     assert "Report do dia" in report
+
+
+def test_build_recap_sem_sessao_anterior_e_vazio():
+    assert build_recap(None) == ""
+
+
+def test_build_recap_lista_entradas_de_ontem_e_tarefas_abertas(storage, clock):
+    day = DayService(storage, clock)
+    day.start_day("u1", "c1")
+    day.add_entry("u1", Entry(type=EntryType.NOTA, raw_input="referencias para documentacao"))
+    previous = day.close_day("u1")
+
+    aberta = Task(title="Criar Pipeline no Github Actions", status=TaskStatus.PENDENTE)
+    concluida = Task(title="tarefa já concluída", status=TaskStatus.CONCLUIDO)
+
+    recap = build_recap(previous, [aberta, concluida])
+
+    assert "referencias para documentacao" in recap
+    assert "Criar Pipeline no Github Actions" in recap
+    assert "tarefa já concluída" not in recap
+
+
+def test_inicio_retoma_atividades_do_dia_anterior(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    day.add_entry("u1", Entry(type=EntryType.NOTA, raw_input="trabalho de ontem"))
+    tasks.create_task("tarefa pendente de ontem")
+    router.fim("u1")
+
+    clock.advance(hours=12)
+    msg = router.inicio("u1", "c1")
+
+    assert "↩️ Retomando de" in msg
+    assert "trabalho de ontem" in msg
+    assert "tarefa pendente de ontem" in msg
+    assert "🟢 Dia iniciado" in msg

@@ -9,7 +9,7 @@ from __future__ import annotations
 from daily.core.day_service import DayService
 from daily.core.link_ingest import LinkIngestor
 from daily.core.models import Entry, EntryType
-from daily.core.report import build_report
+from daily.core.report import build_recap, build_report
 from daily.core.task_service import TaskService
 
 
@@ -27,8 +27,12 @@ class CommandRouter:
         self._storage = storage
 
     def inicio(self, user_id: str, channel_id: str) -> str:
+        previous = self._storage.get_last_closed_session(user_id)
+        tasks = self._storage.list_tasks()
         s = self._day.start_day(user_id, channel_id)
-        return f"🟢 Dia iniciado às {s.started_at.strftime('%H:%M')}."
+        msg = f"🟢 Dia iniciado às {s.started_at.strftime('%H:%M')}."
+        recap = build_recap(previous, tasks)
+        return f"{recap}\n\n{msg}" if recap else msg
 
     def nota(self, user_id: str, texto: str) -> str:
         self._day.add_entry(user_id, Entry(type=EntryType.NOTA, raw_input=texto, title=texto))

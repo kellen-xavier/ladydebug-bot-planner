@@ -40,6 +40,16 @@ class FakeStorage:
     def get_session(self, session_id: str) -> DaySession | None:
         return self.sessions.get(session_id)
 
+    def get_last_closed_session(self, user_id: str) -> DaySession | None:
+        closed = [
+            s
+            for s in self.sessions.values()
+            if s.user_id == user_id and s.status is SessionStatus.FECHADA
+        ]
+        if not closed:
+            return None
+        return max(closed, key=lambda s: s.ended_at)
+
     def save_task(self, task: Task) -> None:
         self.tasks[task.id] = task
 
