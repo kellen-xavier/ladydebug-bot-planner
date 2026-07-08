@@ -15,7 +15,46 @@ from discord import app_commands
 from daily.command_router import CommandRouter
 
 
-def build_client(router: CommandRouter) -> discord.Client:
+def _known_guilds(client: discord.Client) -> str:
+    return ", ".join(f"{g.name} ({g.id})" for g in client.guilds) or "nenhum"
+
+
+def _guild_access_error(guild_id: str, client: discord.Client) -> str:
+    return (
+        "Nao foi possivel sincronizar comandos no servidor informado em "
+        f"DISCORD_GUILD_ID={guild_id}. Confira se o ID e do servidor correto, "
+        "se o bot esta nesse servidor e se foi convidado com o escopo "
+        "'applications.commands'. "
+        f"Servidores visiveis para este bot: {_known_guilds(client)}."
+    )
+
+
+async def _sync_commands(
+    tree: app_commands.CommandTree,
+    client: discord.Client,
+    guild_id: str | None,
+) -> bool:
+    if guild_id:
+        if not any(str(g.id) == guild_id for g in client.guilds):
+            print(_guild_access_error(guild_id, client))
+            await client.close()
+            return False
+
+        guild = discord.Object(id=int(guild_id))
+        try:
+            tree.copy_global_to(guild=guild)
+            await tree.sync(guild=guild)
+        except discord.Forbidden:
+            print(_guild_access_error(guild_id, client))
+            await client.close()
+            return False
+    else:
+        await tree.sync()
+
+    return True
+
+
+def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.Client:
     intents = discord.Intents.default()
     intents.voice_states = True
     client = discord.Client(intents=intents)
@@ -23,7 +62,9 @@ def build_client(router: CommandRouter) -> discord.Client:
 
     @client.event
     async def on_ready():
-        await tree.sync()
+        synced = await _sync_commands(tree, client, guild_id)
+        if not synced:
+            return
         print(f"Bot online como {client.user}")
 
     @tree.command(name="inicio", description="Inicia o dia")
@@ -70,7 +111,8 @@ def build_client(router: CommandRouter) -> discord.Client:
 
 def run() -> None:  # pragma: no cover
     token = os.environ["DISCORD_TOKEN"]
+    guild_id = os.environ.get("DISCORD_GUILD_ID")
     # A montagem das dependências (storage, services) fica em main.py.
     from daily.main import build_router
 
-    build_client(build_router()).run(token)
+    build_client(build_router(), guild_id=guild_id).run(token)

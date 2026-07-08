@@ -36,4 +36,5 @@ if __name__ == "__main__":  # pragma: no cover
     from daily.adapters.discord_bot import build_client
 
     token = os.environ["DISCORD_TOKEN"]
-    build_client(build_router()).run(token)
+    guild_id = os.environ.get("DISCORD_GUILD_ID")
+    build_client(build_router(), guild_id=guild_id).run(token)

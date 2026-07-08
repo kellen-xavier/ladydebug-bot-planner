@@ -31,7 +31,9 @@ adapters e no `main.py`.
 ## Rodar os testes (TDD)
 
 ```bash
-pip install -e ".[dev]"
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 pytest
 ```
 
@@ -39,12 +41,37 @@ pytest
 
 ```bash
 cp .env.example .env   # preencha DISCORD_TOKEN, GITHUB_TOKEN, AZURE_DEVOPS_PAT
-pip install -e .
+source .venv/bin/activate
+python -m pip install -e .
+set -a; source .env; set +a
 python -m daily.main
+```
+
+Se nao quiser ativar o ambiente virtual, use o Python da `.venv` diretamente:
+
+```bash
+set -a; source .env; set +a
+./.venv/bin/python -m daily.main
 ```
 
 Comandos disponíveis nesta fase: `/inicio`, `/nota`, `/link`, `/task`, `/fim`,
 e contagem de tempo em canal de voz (Discord).
+
+### Testar localmente em um servidor Discord
+
+1. Crie uma aplicação no Discord Developer Portal e adicione um bot.
+2. Copie o token do bot para `DISCORD_TOKEN` no `.env`.
+3. Copie o ID do seu servidor de teste para `DISCORD_GUILD_ID` no `.env`.
+4. Convide o bot para o servidor com os escopos `bot` e `applications.commands`.
+5. Rode localmente:
+
+```bash
+source .venv/bin/activate
+set -a; source .env; set +a
+python -m daily.main
+```
+
+Com `DISCORD_GUILD_ID`, os slash commands sincronizam apenas no servidor de teste e aparecem mais rapido do que comandos globais. Para validar sem rede externa, use `/inicio`, `/nota`, `/task` e `/fim`; `/link` pode chamar GitHub/Azure ou buscar a URL real.
 
 ## Escopo desta entrega
 
