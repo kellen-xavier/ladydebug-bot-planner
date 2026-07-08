@@ -35,7 +35,10 @@ class CommandRouter:
         return "📝 Nota registrada."
 
     def link(self, user_id: str, url: str, comentario: str = "") -> str:
-        entry = self._ingestor.ingest(url, comentario)
+        try:
+            entry = self._ingestor.ingest(url, comentario)
+        except Exception:
+            return "⚠️ Não consegui processar esse link agora. Tente novamente mais tarde."
         self._day.add_entry(user_id, entry)
         return f"🔗 Registrado: {entry.title}"
 

@@ -1,9 +1,20 @@
 from conftest import FakeFetcher, FakeGitHub, FakeSummarizer
+from daily.command_router import CommandRouter
 from daily.core.day_service import DayService
 from daily.core.link_ingest import LinkIngestor
 from daily.core.models import EntryType, TaskStatus
 from daily.core.report import build_report
 from daily.core.task_service import TaskService
+
+
+class FailingFetcher:
+    def fetch(self, url: str):
+        raise RuntimeError("fetch falhou com token SECRET")
+
+
+class FailingSummarizer:
+    def summarize(self, text: str, metadata: dict) -> str:
+        raise RuntimeError("resumo falhou com token SECRET")
 
 
 def test_ingest_github_vira_entry_de_commit(clock):
@@ -41,3 +52,33 @@ def test_report_agrupa_e_e_conciso(storage, clock):
     assert "Commits" in report
     assert "revisei a doc de arquitetura" in report
     assert "Em Andamento (1)" in report
+
+
+def test_erro_de_fetch_nao_quebra_fechamento_do_dia(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FailingFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    msg = router.link("u1", "https://exemplo.com/privado")
+    report = router.fim("u1")
+
+    assert "Não consegui processar esse link" in msg
+    assert "SECRET" not in msg
+    assert "Report do dia" in report
+
+
+def test_erro_de_resumo_nao_quebra_fechamento_do_dia(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FailingSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    msg = router.link("u1", "https://exemplo.com/doc")
+    report = router.fim("u1")
+
+    assert "Não consegui processar esse link" in msg
+    assert "SECRET" not in msg
+    assert "Report do dia" in report

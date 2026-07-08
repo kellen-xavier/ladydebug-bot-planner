@@ -6,9 +6,59 @@ O summarizer via LLM é deixado como implementação plugável — a chamada rea
 
 from __future__ import annotations
 
+import ipaddress
+import socket
 from datetime import datetime
+from urllib.parse import urlparse
 
 from daily.ports import FetchedPage
+
+
+def _is_blocked_ip(address: str) -> bool:
+    ip = ipaddress.ip_address(address)
+    return any(
+        (
+            ip.is_loopback,
+            ip.is_private,
+            ip.is_link_local,
+            ip.is_multicast,
+            ip.is_reserved,
+            ip.is_unspecified,
+        )
+    )
+
+
+def _validate_fetch_url(url: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("URL bloqueada: use apenas http ou https.")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL bloqueada: host ausente.")
+
+    normalized_host = hostname.rstrip(".").lower()
+    if normalized_host == "localhost" or normalized_host.endswith(".localhost"):
+        raise ValueError("URL bloqueada: host local nao e permitido.")
+
+    try:
+        if _is_blocked_ip(normalized_host):
+            raise ValueError("URL bloqueada: IP privado ou reservado nao e permitido.")
+        return
+    except ValueError as exc:
+        if str(exc).startswith("URL bloqueada"):
+            raise
+
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        resolved = socket.getaddrinfo(normalized_host, port, type=socket.SOCK_STREAM)
+    except OSError as exc:
+        raise ValueError("URL bloqueada: nao foi possivel resolver o host.") from exc
+
+    for item in resolved:
+        resolved_ip = item[4][0]
+        if _is_blocked_ip(resolved_ip):
+            raise ValueError("URL bloqueada: host resolve para IP privado ou reservado.")
 
 
 class SystemClock:
@@ -24,6 +74,7 @@ class SimpleFetcher:
     """
 
     def fetch(self, url: str) -> FetchedPage:  # pragma: no cover - I/O real
+        _validate_fetch_url(url)
         try:
             import requests
         except ImportError as exc:

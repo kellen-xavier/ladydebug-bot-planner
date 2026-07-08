@@ -8,13 +8,15 @@ Executar exige DISCORD_TOKEN; não é exercitado pelos testes de núcleo.
 
 from __future__ import annotations
 
+import logging
 import os
-from contextlib import suppress
 
 import discord
 from discord import app_commands
 
 from daily.command_router import CommandRouter
+
+logger = logging.getLogger(__name__)
 
 
 def _known_guilds(client: discord.Client) -> str:
@@ -54,6 +56,20 @@ async def _sync_commands(
         await tree.sync()
 
     return True
+
+
+def _record_voice_event(router: CommandRouter, user_id: str, action: str) -> None:
+    try:
+        if action == "join":
+            router._day.voice_join(user_id)
+        elif action == "leave":
+            router._day.voice_leave(user_id)
+    except Exception as exc:
+        logger.info(
+            "Evento de voz ignorado durante %s: %s",
+            action,
+            type(exc).__name__,
+        )
 
 
 def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.Client:
@@ -96,11 +112,9 @@ def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.
     async def on_voice_state_update(member, before, after):
         uid = str(member.id)
         if before.channel is None and after.channel is not None:
-            with suppress(Exception):
-                router._day.voice_join(uid)
+            _record_voice_event(router, uid, "join")
         elif before.channel is not None and after.channel is None:
-            with suppress(Exception):
-                router._day.voice_leave(uid)
+            _record_voice_event(router, uid, "leave")
 
     return client
 

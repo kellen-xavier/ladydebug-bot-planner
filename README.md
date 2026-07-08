@@ -40,10 +40,10 @@ pytest
 ## Qualidade e segurança
 
 ```bash
-ruff check .
-ruff format .
-python -m pip_audit
-python -m bandit -r src
+./.venv/bin/ruff check .
+./.venv/bin/ruff format .
+./.venv/bin/python -m pip_audit
+./.venv/bin/python -m bandit -r src
 ```
 
 `pip-audit` verifica vulnerabilidades conhecidas nas dependências instaladas.
