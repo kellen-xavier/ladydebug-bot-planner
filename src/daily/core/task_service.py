@@ -2,10 +2,10 @@
 
 Pendente -> Em Andamento -> Concluído -> Aceito (com reaberturas controladas).
 """
+
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
 
 from daily.core.models import InvalidTransition, Task, TaskStatus
 from daily.ports import Clock, Storage

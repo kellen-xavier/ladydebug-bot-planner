@@ -3,6 +3,7 @@
 O summarizer via LLM é deixado como implementação plugável — a chamada real
 (ex.: API da Claude) entra aqui sem tocar no núcleo.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

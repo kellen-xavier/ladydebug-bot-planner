@@ -6,10 +6,10 @@ só dos adaptadores; o núcleo e os testes não importam este módulo).
 
 Requisitos v1: GitHub + Azure DevOps.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from daily.ports import VCSItem
 
@@ -25,7 +25,7 @@ class GitHubProvider:
     _COMMIT = re.compile(r"github\.com/([^/]+)/([^/]+)/commit/([0-9a-f]+)")
     _PR = re.compile(r"github\.com/([^/]+)/([^/]+)/pull/(\d+)")
 
-    def __init__(self, token: Optional[str] = None) -> None:
+    def __init__(self, token: str | None = None) -> None:
         self._token = token
 
     def matches(self, url: str) -> bool:
@@ -94,14 +94,10 @@ class AzureDevOpsProvider:
       https://dev.azure.com/{org}/{project}/_git/{repo}/pullrequest/{id}
     """
 
-    _COMMIT = re.compile(
-        r"dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+)/commit/([0-9a-f]+)"
-    )
-    _PR = re.compile(
-        r"dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+)/pullrequest/(\d+)"
-    )
+    _COMMIT = re.compile(r"dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+)/commit/([0-9a-f]+)")
+    _PR = re.compile(r"dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+)/pullrequest/(\d+)")
 
-    def __init__(self, pat: Optional[str] = None) -> None:
+    def __init__(self, pat: str | None = None) -> None:
         self._pat = pat  # Personal Access Token
 
     def matches(self, url: str) -> bool:

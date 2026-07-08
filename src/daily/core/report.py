@@ -2,6 +2,7 @@
 
 Saída em texto puro, boa tanto para Discord quanto para Slack.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict

@@ -3,12 +3,12 @@
 Serializa os agregados como JSON para o MVP. Ao migrar para Postgres,
 troca-se só esta classe — o núcleo não muda (é a vantagem da port Storage).
 """
+
 from __future__ import annotations
 
 import json
 import sqlite3
 from datetime import datetime
-from typing import Optional
 
 from daily.core.models import (
     DaySession,
@@ -21,11 +21,11 @@ from daily.core.models import (
 )
 
 
-def _iso(dt: Optional[datetime]) -> Optional[str]:
+def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
-def _dt(s: Optional[str]) -> Optional[datetime]:
+def _dt(s: str | None) -> datetime | None:
     return datetime.fromisoformat(s) if s else None
 
 
@@ -36,9 +36,7 @@ class SqliteStorage:
             "CREATE TABLE IF NOT EXISTS sessions "
             "(id TEXT PRIMARY KEY, user_id TEXT, status TEXT, data TEXT)"
         )
-        self._conn.execute(
-            "CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, data TEXT)"
-        )
+        self._conn.execute("CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, data TEXT)")
         self._conn.commit()
 
     # ---- sessions ----
@@ -63,28 +61,24 @@ class SqliteStorage:
                 for e in session.entries
             ],
             "voice": [
-                {"joined_at": _iso(v.joined_at), "left_at": _iso(v.left_at)}
-                for v in session.voice
+                {"joined_at": _iso(v.joined_at), "left_at": _iso(v.left_at)} for v in session.voice
             ],
         }
         self._conn.execute(
-            "INSERT OR REPLACE INTO sessions (id, user_id, status, data) "
-            "VALUES (?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO sessions (id, user_id, status, data) VALUES (?, ?, ?, ?)",
             (session.id, session.user_id, session.status.value, json.dumps(payload)),
         )
         self._conn.commit()
 
-    def get_open_session(self, user_id: str) -> Optional[DaySession]:
+    def get_open_session(self, user_id: str) -> DaySession | None:
         row = self._conn.execute(
             "SELECT data FROM sessions WHERE user_id = ? AND status = ? LIMIT 1",
             (user_id, SessionStatus.ABERTA.value),
         ).fetchone()
         return self._hydrate_session(row[0]) if row else None
 
-    def get_session(self, session_id: str) -> Optional[DaySession]:
-        row = self._conn.execute(
-            "SELECT data FROM sessions WHERE id = ?", (session_id,)
-        ).fetchone()
+    def get_session(self, session_id: str) -> DaySession | None:
+        row = self._conn.execute("SELECT data FROM sessions WHERE id = ?", (session_id,)).fetchone()
         return self._hydrate_session(row[0]) if row else None
 
     def _hydrate_session(self, raw: str) -> DaySession:
@@ -132,10 +126,8 @@ class SqliteStorage:
         )
         self._conn.commit()
 
-    def get_task(self, task_id: str) -> Optional[Task]:
-        row = self._conn.execute(
-            "SELECT data FROM tasks WHERE id = ?", (task_id,)
-        ).fetchone()
+    def get_task(self, task_id: str) -> Task | None:
+        row = self._conn.execute("SELECT data FROM tasks WHERE id = ?", (task_id,)).fetchone()
         return self._hydrate_task(row[0]) if row else None
 
     def list_tasks(self) -> list[Task]:

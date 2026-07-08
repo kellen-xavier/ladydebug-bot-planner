@@ -3,13 +3,12 @@
 Discord e Slack traduzem seus eventos em chamadas a estes métodos e formatam
 o retorno. Nenhuma regra de negócio vive nos adaptadores de plataforma.
 """
-from __future__ import annotations
 
-from datetime import timedelta
+from __future__ import annotations
 
 from daily.core.day_service import DayService
 from daily.core.link_ingest import LinkIngestor
-from daily.core.models import Entry, EntryType, TaskStatus
+from daily.core.models import Entry, EntryType
 from daily.core.report import build_report
 from daily.core.task_service import TaskService
 

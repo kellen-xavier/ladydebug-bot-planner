@@ -5,9 +5,11 @@ CommandRouter e devolve o texto. A lógica está toda no núcleo.
 
 Executar exige DISCORD_TOKEN; não é exercitado pelos testes de núcleo.
 """
+
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 
 import discord
 from discord import app_commands
@@ -74,9 +76,7 @@ def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.
 
     @tree.command(name="nota", description="Registra uma atividade em texto")
     async def nota(interaction: discord.Interaction, texto: str):
-        await interaction.response.send_message(
-            router.nota(str(interaction.user.id), texto)
-        )
+        await interaction.response.send_message(router.nota(str(interaction.user.id), texto))
 
     @tree.command(name="link", description="Ingere e resume um link")
     async def link(interaction: discord.Interaction, url: str, comentario: str = ""):
@@ -96,15 +96,11 @@ def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.
     async def on_voice_state_update(member, before, after):
         uid = str(member.id)
         if before.channel is None and after.channel is not None:
-            try:
+            with suppress(Exception):
                 router._day.voice_join(uid)
-            except Exception:
-                pass  # sem dia aberto: ignora
         elif before.channel is not None and after.channel is None:
-            try:
+            with suppress(Exception):
                 router._day.voice_leave(uid)
-            except Exception:
-                pass
 
     return client
 
