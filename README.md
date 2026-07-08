@@ -1,4 +1,4 @@
-# Bot Daily Planner
+# Bot Daily Planner (Fase 0)
 
 Bot de "daily updates" para **Discord**, com o núcleo já preparado para **Slack**
 sem reescrita. Compila os movimentos do dia (notas, links, commits/PRs) e gera um
