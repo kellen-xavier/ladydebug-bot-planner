@@ -5,9 +5,10 @@ de VCS correspondente; senão trata como página genérica (site, .docx, Dropbox
 extrai metadados e gera um resumo factual. Em ambos os casos devolve uma Entry
 pronta para ser anexada ao dia.
 """
+
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from daily.core.models import Entry, EntryType
 from daily.ports import LinkFetcher, Summarizer, VCSItem, VCSProvider
@@ -34,8 +35,7 @@ class LinkIngestor:
         etype = EntryType.PR if item.kind == "pr" else EntryType.COMMIT
         title = f"{item.repo}: {item.title}"
         summary = (
-            f"{item.provider} · {item.kind} por {item.author} "
-            f"(+{item.additions} −{item.deletions})"
+            f"{item.provider} · {item.kind} por {item.author} (+{item.additions} −{item.deletions})"
         )
         if comment:
             summary += f" — {comment}"

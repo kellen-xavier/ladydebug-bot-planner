@@ -1,6 +1,7 @@
 import asyncio
+import logging
 
-from daily.adapters.discord_bot import _sync_commands
+from daily.adapters.discord_bot import _record_voice_event, _sync_commands
 
 
 class FakeGuild:
@@ -30,6 +31,19 @@ class FakeTree:
         self.synced = True
 
 
+class FailingDay:
+    def voice_join(self, user_id: str) -> None:
+        raise RuntimeError(f"falha privada para {user_id} com token SECRET")
+
+    def voice_leave(self, user_id: str) -> None:
+        raise RuntimeError(f"falha privada para {user_id} com token SECRET")
+
+
+class FakeRouter:
+    def __init__(self) -> None:
+        self._day = FailingDay()
+
+
 def test_sync_commands_fecha_cliente_quando_guild_nao_esta_visivel(capsys):
     client = FakeClient(guilds=[])
     tree = FakeTree()
@@ -55,3 +69,14 @@ def test_sync_commands_sincroniza_quando_guild_esta_visivel():
     assert client.closed is False
     assert tree.copied is True
     assert tree.synced is True
+
+
+def test_record_voice_event_loga_falha_sem_dados_sensiveis(caplog):
+    caplog.set_level(logging.INFO, logger="daily.adapters.discord_bot")
+
+    _record_voice_event(FakeRouter(), "usuario-123", "join")
+
+    assert "Evento de voz ignorado durante join: RuntimeError" in caplog.text
+    assert "usuario-123" not in caplog.text
+    assert "SECRET" not in caplog.text
+    assert "falha privada" not in caplog.text

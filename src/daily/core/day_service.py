@@ -2,10 +2,8 @@
 
 Lógica pura. Recebe Storage e Clock por injeção (ports), nunca I/O direto.
 """
-from __future__ import annotations
 
-from datetime import datetime
-from typing import Optional
+from __future__ import annotations
 
 from daily.core.models import (
     DaySession,

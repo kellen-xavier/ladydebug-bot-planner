@@ -5,14 +5,18 @@ CommandRouter e devolve o texto. A lógica está toda no núcleo.
 
 Executar exige DISCORD_TOKEN; não é exercitado pelos testes de núcleo.
 """
+
 from __future__ import annotations
 
+import logging
 import os
 
 import discord
 from discord import app_commands
 
 from daily.command_router import CommandRouter
+
+logger = logging.getLogger(__name__)
 
 
 def _known_guilds(client: discord.Client) -> str:
@@ -54,6 +58,20 @@ async def _sync_commands(
     return True
 
 
+def _record_voice_event(router: CommandRouter, user_id: str, action: str) -> None:
+    try:
+        if action == "join":
+            router._day.voice_join(user_id)
+        elif action == "leave":
+            router._day.voice_leave(user_id)
+    except Exception as exc:
+        logger.info(
+            "Evento de voz ignorado durante %s: %s",
+            action,
+            type(exc).__name__,
+        )
+
+
 def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.Client:
     intents = discord.Intents.default()
     intents.voice_states = True
@@ -74,9 +92,7 @@ def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.
 
     @tree.command(name="nota", description="Registra uma atividade em texto")
     async def nota(interaction: discord.Interaction, texto: str):
-        await interaction.response.send_message(
-            router.nota(str(interaction.user.id), texto)
-        )
+        await interaction.response.send_message(router.nota(str(interaction.user.id), texto))
 
     @tree.command(name="link", description="Ingere e resume um link")
     async def link(interaction: discord.Interaction, url: str, comentario: str = ""):
@@ -96,15 +112,9 @@ def build_client(router: CommandRouter, guild_id: str | None = None) -> discord.
     async def on_voice_state_update(member, before, after):
         uid = str(member.id)
         if before.channel is None and after.channel is not None:
-            try:
-                router._day.voice_join(uid)
-            except Exception:
-                pass  # sem dia aberto: ignora
+            _record_voice_event(router, uid, "join")
         elif before.channel is not None and after.channel is None:
-            try:
-                router._day.voice_leave(uid)
-            except Exception:
-                pass
+            _record_voice_event(router, uid, "leave")
 
     return client
 
