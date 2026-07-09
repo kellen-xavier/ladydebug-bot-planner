@@ -25,8 +25,49 @@ Resultado atual:
 79 passed
 ```
 
-Cobertura percentual ainda não é medida porque `coverage`/`pytest-cov` não está
-instalado nas dependências de desenvolvimento.
+Cobertura atual:
+
+```bash
+./.venv/bin/python -m pytest --cov=src/daily --cov-report=term-missing
+```
+
+```txt
+TOTAL 671 statements, 61 missing, 91% coverage
+```
+
+Observação: a execução de cobertura mostrou `ResourceWarning` de conexões SQLite
+não fechadas em testes. Isso não quebra a suíte, mas deve ser tratado para manter
+higiene dos testes e evitar vazamento de recurso em execuções longas.
+
+## Cobertura Por Módulo
+
+```txt
+src/daily/adapters/discord_bot.py         51%
+src/daily/adapters/misc.py                91%
+src/daily/adapters/storage_sqlite.py      98%
+src/daily/adapters/vcs.py                100%
+src/daily/command_router.py               89%
+src/daily/core/day_service.py            100%
+src/daily/core/link_ingest.py            100%
+src/daily/core/models.py                  98%
+src/daily/core/report.py                  95%
+src/daily/core/task_service.py            98%
+src/daily/main.py                        100%
+src/daily/ports/__init__.py              100%
+TOTAL                                     91%
+```
+
+Linhas ainda sem cobertura:
+
+```txt
+src/daily/adapters/discord_bot.py: 36, 93-94, 108-155
+src/daily/adapters/misc.py: 60, 69, 77-78, 88
+src/daily/adapters/storage_sqlite.py: 91
+src/daily/command_router.py: 63-67, 70-71
+src/daily/core/models.py: 73
+src/daily/core/report.py: 32-34, 119
+src/daily/core/task_service.py: 62
+```
 
 ## Diretrizes Para Novos Testes
 
@@ -274,13 +315,7 @@ Cenários:
 
 ## Métrica Objetiva De Cobertura
 
-Adicionar ferramenta de coverage às dependências dev.
-
-Opção recomendada:
-
-```toml
-pytest-cov>=5.0
-```
+`pytest-cov` está configurado nas dependências de desenvolvimento.
 
 Comando recomendado:
 
@@ -311,4 +346,5 @@ Critério inicial sugerido:
 4. Completar falhas de VCS.
 5. Completar variações do report.
 6. Extrair/testar callbacks Discord se necessário.
-7. Adicionar `pytest-cov` e estabelecer meta de cobertura.
+7. Tratar `ResourceWarning` de conexões SQLite não fechadas nos testes.
+8. Elevar cobertura do `discord_bot.py`, que é o menor módulo hoje com 51%.
