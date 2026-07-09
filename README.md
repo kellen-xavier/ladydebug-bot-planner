@@ -69,18 +69,31 @@ set -a; source .env; set +a
 ./.venv/bin/python -m daily.main
 ```
 
-Comandos disponíveis nesta fase: `/inicio`, `/continuar`, `/nota`, `/link`, `/task`,
-`/fim`, e contagem de tempo em canal de voz (Discord).
+## Comandos do BOT
+
+- `/inicio`: inicia o bot no chat para inicio do dia
+- `/continuar`: continua a atividade caso precisar antes do fechamento
+- `/nota`: caso queira adicionar uma nota
+- `/link`: adicionar links importantes durante o desenvilvimento - exe: documentação
+- `/pr`: adiciona PRs abertos
+- `/task`: cria tarefas
+- `/fim`: e contagem de tempo em canal de voz (Discord)
+
+Use `/pr url:<url-do-pr>` para registrar um Pull Request explicitamente. URLs de PR
+também funcionam via `/link`, mas `/pr` **rejeita links que não sejam Pull Request** e
+deixa a intenção mais clara no chat.
 
 Se `/inicio` for usado com um dia já aberto, o bot responde para seguir com
 `/continuar`. Use `/fim` para fechar o dia atual antes de iniciar outro.
+
+-----
 
 ### Uso seguro do DB_PATH
 
 `DB_PATH` define onde o SQLite local será criado. Se não for informado, o bot usa
 `daily.db` na raiz do projeto.
 
-Boas práticas:
+## Boas práticas
 
 - Use um caminho local controlado, por exemplo `daily.db` ou `data/daily.db`.
 - Não versionar o banco: arquivos `*.db` já estão no `.gitignore`.
@@ -90,6 +103,8 @@ Boas práticas:
 
 O bot valida `DB_PATH` ao iniciar e falha cedo se o valor estiver vazio, apontar para
 um diretório ou usar um diretório pai inexistente.
+
+-----
 
 ### Testar localmente em um servidor Discord
 
@@ -117,7 +132,15 @@ DISCORD_TOKEN=token_do_bot
 DISCORD_CLIENT_ID=1524200494522957946
 DISCORD_GUILD_ID=807481361916100628
 DB_PATH=daily.db
+# Opcional: canal onde o /fim publica o report. Se omitido, usa o nome release-notes.
+DISCORD_REPORT_CHANNEL_NAME=release-notes
+# Opcional: prefira o ID para evitar conflito se existirem canais com nomes iguais.
+# DISCORD_REPORT_CHANNEL_ID=123456789012345678
 ```
+
+Quando `#release-notes` existir no servidor, `/fim` publica o report nesse canal e
+responde no canal de comandos apenas com uma confirmação efêmera. Se o canal não for
+encontrado, o bot mantém o comportamento seguro de enviar o report no canal atual.
 
 ### Produção
 
@@ -129,6 +152,7 @@ DISCORD_TOKEN=token_do_bot
 DISCORD_CLIENT_ID=1524200494522957946
 DISCORD_GUILD_ID=807481361916100628
 DB_PATH=/app/data/daily.db
+DISCORD_REPORT_CHANNEL_NAME=release-notes
 ```
 
 Se quiser comandos globais em produção, deixe `DISCORD_GUILD_ID` vazio. A
@@ -148,19 +172,10 @@ Se o terminal mostrar `Servidores visiveis para este bot: nenhum`, confira:
 Com `DISCORD_CLIENT_ID` configurado, o bot imprime uma URL de convite correta
 quando não consegue ver o servidor informado.
 
-## Escopo desta entrega
+## Escopo
 
 - Loop completo do dia: `/inicio` → registrar movimentos → `/fim` com report.
 - Ingestão de links com **GitHub e Azure DevOps** (requisito v1), atrás da mesma port.
 - Máquina de estados de tarefas com detecção de travamento.
 - Tempo em call no Discord.
 - Suíte de testes cobrindo o núcleo.
-
-## Próximas fases
-
-1. **Resumo real dos links**: trocar `EchoSummarizer` por um `LLMSummarizer` e o
-   `SimpleFetcher` por extração dedicada (+ `mammoth` para `.docx`, Dropbox).
-2. **Integrações**: Google Calendar (`/agenda`), `/repo` completo.
-3. **Geração assistida**: Deployment Guide a partir de branches/PRs; consulta de arquitetura.
-4. **Slack**: novo adaptador reusando 100% do núcleo (atenção: tempo de huddle tem
-   API limitada — registrar reuniões via evento de calendário no Slack).

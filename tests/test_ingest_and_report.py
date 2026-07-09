@@ -72,6 +72,35 @@ def test_ingest_pr_vira_entry_de_pr_com_comentario_e_metadados():
     assert entry.metadata["files"] == ["src/daily/command_router.py"]
 
 
+def test_router_pr_registra_pull_request_para_report(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([FakePRProvider()], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    msg = router.pr("u1", "https://github.com/acme/app/pull/10", "validar no staging")
+    report = router.fim("u1")
+
+    assert msg == "🔀 PR registrado: acme/app: Adiciona comando continuar"
+    assert "Pull Requests:" in report
+    assert "acme/app: Adiciona comando continuar" in report
+    assert "validar no staging" in report
+
+
+def test_router_pr_rejeita_url_que_nao_e_pull_request(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([FakeGitHub()], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    msg = router.pr("u1", "https://github.com/acme/app/commit/abc123")
+
+    assert msg == "⚠️ A URL informada não parece ser um Pull Request."
+    assert storage.get_open_session("u1").entries == []
+
+
 def test_ingest_docx_vira_entry_de_doc_e_preserva_comentario():
     ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
 

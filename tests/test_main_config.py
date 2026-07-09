@@ -1,7 +1,12 @@
 import pytest
 
 from daily.command_router import CommandRouter
-from daily.main import build_router, db_path_from_env, discord_config_from_env
+from daily.main import (
+    build_router,
+    db_path_from_env,
+    discord_config_from_env,
+    discord_report_channel_from_env,
+)
 
 
 def test_db_path_from_env_usa_default_quando_nao_configurado(monkeypatch):
@@ -61,6 +66,27 @@ def test_discord_config_from_env_rejeita_client_id_invalido(monkeypatch):
 
     with pytest.raises(ValueError, match="DISCORD_CLIENT_ID deve conter apenas numeros"):
         discord_config_from_env()
+
+
+def test_discord_report_channel_from_env_usa_release_notes_por_padrao(monkeypatch):
+    monkeypatch.delenv("DISCORD_REPORT_CHANNEL_ID", raising=False)
+    monkeypatch.delenv("DISCORD_REPORT_CHANNEL_NAME", raising=False)
+
+    assert discord_report_channel_from_env() == (None, "release-notes")
+
+
+def test_discord_report_channel_from_env_aceita_id_e_nome(monkeypatch):
+    monkeypatch.setenv("DISCORD_REPORT_CHANNEL_ID", " 789 ")
+    monkeypatch.setenv("DISCORD_REPORT_CHANNEL_NAME", " reports ")
+
+    assert discord_report_channel_from_env() == ("789", "reports")
+
+
+def test_discord_report_channel_from_env_rejeita_id_invalido(monkeypatch):
+    monkeypatch.setenv("DISCORD_REPORT_CHANNEL_ID", "release-notes")
+
+    with pytest.raises(ValueError, match="DISCORD_REPORT_CHANNEL_ID deve conter apenas numeros"):
+        discord_report_channel_from_env()
 
 
 def test_build_router_monta_command_router_com_sqlite_local(monkeypatch, tmp_path):

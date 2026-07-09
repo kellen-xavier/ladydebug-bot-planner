@@ -40,6 +40,31 @@ def _known_guilds(client: discord.Client) -> str:
     return ", ".join(f"{g.name} ({g.id})" for g in client.guilds) or "nenhum"
 
 
+def _find_text_channel(
+    interaction: discord.Interaction,
+    channel_id: str | None,
+    channel_name: str | None,
+):
+    guild = interaction.guild
+    if guild is None:
+        return None
+
+    if channel_id:
+        try:
+            channel = guild.get_channel(int(channel_id))
+        except ValueError:
+            channel = None
+        if channel is not None and hasattr(channel, "send"):
+            return channel
+
+    if channel_name:
+        for channel in getattr(guild, "text_channels", []):
+            if channel.name == channel_name and hasattr(channel, "send"):
+                return channel
+
+    return None
+
+
 def _guild_access_error(
     guild_id: str,
     client: discord.Client,
@@ -104,6 +129,8 @@ def build_client(
     router: CommandRouter,
     guild_id: str | None = None,
     client_id: str | None = None,
+    report_channel_id: str | None = None,
+    report_channel_name: str | None = "release-notes",
 ) -> discord.Client:
     intents = discord.Intents.default()
     intents.voice_states = True
@@ -136,13 +163,36 @@ def build_client(
         msg = router.link(str(interaction.user.id), url, comentario)
         await interaction.followup.send(msg)
 
+    @tree.command(name="pr", description="Registra um Pull Request para aparecer no report")
+    async def pr(interaction: discord.Interaction, url: str, comentario: str = ""):
+        await interaction.response.defer()
+        msg = router.pr(str(interaction.user.id), url, comentario)
+        await interaction.followup.send(msg)
+
     @tree.command(name="task", description="Cria uma nova tarefa")
     async def task(interaction: discord.Interaction, titulo: str):
         await interaction.response.send_message(router.task_nova(titulo))
 
     @tree.command(name="fim", description="Fecha o dia e gera o report")
     async def fim(interaction: discord.Interaction):
-        await interaction.response.send_message(router.fim(str(interaction.user.id)))
+        report = router.fim(str(interaction.user.id))
+        if report.startswith("⚠️"):
+            await interaction.response.send_message(report)
+            return
+
+        channel = _find_text_channel(interaction, report_channel_id, report_channel_name)
+        if channel is None:
+            await interaction.response.send_message(report)
+            return
+
+        try:
+            await channel.send(report)
+        except (discord.Forbidden, discord.HTTPException):
+            await interaction.response.send_message(report)
+            return
+
+        mention = getattr(channel, "mention", f"#{getattr(channel, 'name', 'canal configurado')}")
+        await interaction.response.send_message(f"📣 Report enviado em {mention}.", ephemeral=True)
 
     @client.event
     async def on_voice_state_update(member, before, after):
@@ -159,7 +209,15 @@ def run() -> None:  # pragma: no cover
     token = os.environ["DISCORD_TOKEN"]
     guild_id = os.environ.get("DISCORD_GUILD_ID")
     client_id = os.environ.get("DISCORD_CLIENT_ID")
+    report_channel_id = os.environ.get("DISCORD_REPORT_CHANNEL_ID")
+    report_channel_name = os.environ.get("DISCORD_REPORT_CHANNEL_NAME", "release-notes")
     # A montagem das dependências (storage, services) fica em main.py.
     from daily.main import build_router
 
-    build_client(build_router(), guild_id=guild_id, client_id=client_id).run(token)
+    build_client(
+        build_router(),
+        guild_id=guild_id,
+        client_id=client_id,
+        report_channel_id=report_channel_id,
+        report_channel_name=report_channel_name,
+    ).run(token)
