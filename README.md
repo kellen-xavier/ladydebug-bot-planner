@@ -55,7 +55,7 @@ reprodutíveis. Opções recomendadas para este projeto: `pip-tools` ou `uv`.
 ## Rodar o bot
 
 ```bash
-cp .env.example .env   # preencha DISCORD_TOKEN, GITHUB_TOKEN, AZURE_DEVOPS_PAT
+cp .env.example .env   # preencha DISCORD_TOKEN, DISCORD_CLIENT_ID e DISCORD_GUILD_ID
 source .venv/bin/activate
 python -m pip install -e .
 set -a; source .env; set +a
@@ -69,8 +69,11 @@ set -a; source .env; set +a
 ./.venv/bin/python -m daily.main
 ```
 
-Comandos disponíveis nesta fase: `/inicio`, `/nota`, `/link`, `/task`, `/fim`,
-e contagem de tempo em canal de voz (Discord).
+Comandos disponíveis nesta fase: `/inicio`, `/continuar`, `/nota`, `/link`, `/task`,
+`/fim`, e contagem de tempo em canal de voz (Discord).
+
+Se `/inicio` for usado com um dia já aberto, o bot responde para seguir com
+`/continuar`. Use `/fim` para fechar o dia atual antes de iniciar outro.
 
 ### Uso seguro do DB_PATH
 
@@ -91,10 +94,13 @@ um diretório ou usar um diretório pai inexistente.
 ### Testar localmente em um servidor Discord
 
 1. Crie uma aplicação no Discord Developer Portal e adicione um bot.
-2. Copie o token do bot para `DISCORD_TOKEN` no `.env`.
-3. Copie o ID do seu servidor de teste para `DISCORD_GUILD_ID` no `.env`.
-4. Convide o bot para o servidor com os escopos `bot` e `applications.commands`.
-5. Rode localmente:
+2. Em `Bot`, desligue `Requires OAuth2 Code Grant`.
+3. Copie o token do bot para `DISCORD_TOKEN` no `.env`.
+4. Copie o `Application ID`/`Client ID` para `DISCORD_CLIENT_ID` no `.env`.
+5. Copie o ID do seu servidor de teste para `DISCORD_GUILD_ID` no `.env`.
+6. Convide o bot para o servidor com os escopos `bot` e `applications.commands`.
+7. Não coloque a URL de convite em `Redirect URI`; abra a URL no navegador.
+8. Rode localmente:
 
 ```bash
 source .venv/bin/activate
@@ -102,7 +108,45 @@ set -a; source .env; set +a
 python -m daily.main
 ```
 
-Com `DISCORD_GUILD_ID`, os slash commands sincronizam apenas no servidor de teste e aparecem mais rapido do que comandos globais. Para validar sem rede externa, use `/inicio`, `/nota`, `/task` e `/fim`; `/link` pode chamar GitHub/Azure ou buscar a URL real.
+Com `DISCORD_GUILD_ID`, os slash commands sincronizam apenas no servidor de teste e aparecem mais rapido do que comandos globais. Para validar sem rede externa, use `/inicio`, `/continuar`, `/nota`, `/task` e `/fim`; `/link` pode chamar GitHub/Azure ou buscar a URL real.
+
+Exemplo minimo de `.env` local:
+
+```env
+DISCORD_TOKEN=token_do_bot
+DISCORD_CLIENT_ID=1524200494522957946
+DISCORD_GUILD_ID=807481361916100628
+DB_PATH=daily.db
+```
+
+### Produção
+
+Use as mesmas variáveis do ambiente local, mas aponte `DB_PATH` para um caminho
+persistente do servidor ou volume do container:
+
+```env
+DISCORD_TOKEN=token_do_bot
+DISCORD_CLIENT_ID=1524200494522957946
+DISCORD_GUILD_ID=807481361916100628
+DB_PATH=/app/data/daily.db
+```
+
+Se quiser comandos globais em produção, deixe `DISCORD_GUILD_ID` vazio. A
+propagação de slash commands globais pode demorar mais que a sincronização por
+servidor.
+
+### Diagnóstico Discord
+
+Se o terminal mostrar `Servidores visiveis para este bot: nenhum`, confira:
+
+- O token em `DISCORD_TOKEN` pertence ao mesmo app convidado para o servidor.
+- O bot aparece em `Configurações do servidor > Integrações`.
+- `DISCORD_GUILD_ID` é o ID do servidor onde o bot foi autorizado.
+- `Requires OAuth2 Code Grant` está desligado em `Bot`.
+- A URL de convite usa `scope=bot%20applications.commands` e não contém `redirect_uri`.
+
+Com `DISCORD_CLIENT_ID` configurado, o bot imprime uma URL de convite correta
+quando não consegue ver o servidor informado.
 
 ## Escopo desta entrega
 

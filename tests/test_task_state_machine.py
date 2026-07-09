@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 
 from daily.core.models import InvalidTransition, TaskStatus
-from daily.core.task_service import TaskService
+from daily.core.task_service import TaskNotFound, TaskService
 
 
 def test_fluxo_completo_valido(storage, clock):
@@ -50,3 +50,32 @@ def test_task_concluida_nao_conta_como_travada(storage, clock):
     svc.advance(t.id, TaskStatus.CONCLUIDO)
     clock.advance(days=10)
     assert svc.stalled_tasks(timedelta(days=2)) == []
+
+
+def test_add_feedback_atualiza_texto_e_atividade(storage, clock):
+    svc = TaskService(storage, clock)
+    task = svc.create_task("revisar PR")
+    clock.advance(hours=1)
+
+    updated = svc.add_feedback(task.id, "aguardando ajustes")
+
+    assert updated.feedback == "aguardando ajustes"
+    assert updated.last_activity_at == clock.now()
+
+
+def test_attach_link_adiciona_link_e_atualiza_atividade(storage, clock):
+    svc = TaskService(storage, clock)
+    task = svc.create_task("documentar setup")
+    clock.advance(minutes=30)
+
+    updated = svc.attach_link(task.id, "https://exemplo.com", "referencia")
+
+    assert updated.links == [{"url": "https://exemplo.com", "comment": "referencia"}]
+    assert updated.last_activity_at == clock.now()
+
+
+def test_tarefa_inexistente_falha_com_erro_controlado(storage, clock):
+    svc = TaskService(storage, clock)
+
+    with pytest.raises(TaskNotFound, match="Tarefa task-404 não encontrada"):
+        svc.add_feedback("task-404", "texto")
