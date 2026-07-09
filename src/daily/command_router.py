@@ -10,7 +10,7 @@ from daily.core.day_service import DayAlreadyOpen, DayService, NoOpenDay
 from daily.core.link_ingest import LinkIngestor
 from daily.core.models import Entry, EntryType
 from daily.core.report import build_recap, build_report
-from daily.core.task_service import TaskService
+from daily.core.task_service import TaskNotFound, TaskService
 
 
 class CommandRouter:
@@ -77,7 +77,10 @@ class CommandRouter:
         return "\n".join(f"[{t.id}] {t.status.value} — {t.title}" for t in tasks)
 
     def feedback(self, task_id: str, texto: str) -> str:
-        self._tasks.add_feedback(task_id, texto)
+        try:
+            self._tasks.add_feedback(task_id, texto)
+        except TaskNotFound:
+            return f"⚠️ Tarefa {task_id} não encontrada."
         return "💬 Feedback salvo."
 
     def fim(self, user_id: str) -> str:
