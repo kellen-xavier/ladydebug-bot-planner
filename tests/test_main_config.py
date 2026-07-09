@@ -1,6 +1,7 @@
 import pytest
 
-from daily.main import db_path_from_env
+from daily.command_router import CommandRouter
+from daily.main import build_router, db_path_from_env, discord_config_from_env
 
 
 def test_db_path_from_env_usa_default_quando_nao_configurado(monkeypatch):
@@ -29,3 +30,45 @@ def test_db_path_from_env_rejeita_diretorio_pai_inexistente(monkeypatch, tmp_pat
 
     with pytest.raises(ValueError, match="Diretorio pai de DB_PATH nao existe"):
         db_path_from_env()
+
+
+def test_discord_config_from_env_rejeita_token_vazio(monkeypatch):
+    monkeypatch.delenv("DISCORD_TOKEN", raising=False)
+
+    with pytest.raises(ValueError, match="DISCORD_TOKEN e obrigatorio"):
+        discord_config_from_env()
+
+
+def test_discord_config_from_env_aceita_ids_opcionais(monkeypatch):
+    monkeypatch.setenv("DISCORD_TOKEN", " token ")
+    monkeypatch.setenv("DISCORD_GUILD_ID", " 123 ")
+    monkeypatch.setenv("DISCORD_CLIENT_ID", " 456 ")
+
+    assert discord_config_from_env() == ("token", "123", "456")
+
+
+def test_discord_config_from_env_rejeita_guild_id_invalido(monkeypatch):
+    monkeypatch.setenv("DISCORD_TOKEN", "token")
+    monkeypatch.setenv("DISCORD_GUILD_ID", "abc")
+
+    with pytest.raises(ValueError, match="DISCORD_GUILD_ID deve conter apenas numeros"):
+        discord_config_from_env()
+
+
+def test_discord_config_from_env_rejeita_client_id_invalido(monkeypatch):
+    monkeypatch.setenv("DISCORD_TOKEN", "token")
+    monkeypatch.setenv("DISCORD_CLIENT_ID", "abc")
+
+    with pytest.raises(ValueError, match="DISCORD_CLIENT_ID deve conter apenas numeros"):
+        discord_config_from_env()
+
+
+def test_build_router_monta_command_router_com_sqlite_local(monkeypatch, tmp_path):
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "daily.db"))
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("AZURE_DEVOPS_PAT", raising=False)
+
+    router = build_router()
+
+    assert isinstance(router, CommandRouter)
+    assert router.task_status() == "Nenhuma tarefa."
