@@ -18,6 +18,26 @@ from daily.core.link_ingest import LinkIngestor
 from daily.core.task_service import TaskService
 
 
+def _optional_numeric_env(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return None
+    value = value.strip()
+    if not value.isdecimal():
+        raise ValueError(f"{name} deve conter apenas numeros.")
+    return value
+
+
+def discord_config_from_env() -> tuple[str, str | None, str | None]:
+    token = os.environ.get("DISCORD_TOKEN", "").strip()
+    if not token:
+        raise ValueError("DISCORD_TOKEN e obrigatorio para rodar o bot.")
+
+    guild_id = _optional_numeric_env("DISCORD_GUILD_ID")
+    client_id = _optional_numeric_env("DISCORD_CLIENT_ID")
+    return token, guild_id, client_id
+
+
 def db_path_from_env() -> str:
     raw_path = os.environ.get("DB_PATH", "daily.db").strip()
     if not raw_path:
@@ -51,6 +71,5 @@ def build_router() -> CommandRouter:
 if __name__ == "__main__":  # pragma: no cover
     from daily.adapters.discord_bot import build_client
 
-    token = os.environ["DISCORD_TOKEN"]
-    guild_id = os.environ.get("DISCORD_GUILD_ID")
-    build_client(build_router(), guild_id=guild_id).run(token)
+    token, guild_id, client_id = discord_config_from_env()
+    build_client(build_router(), guild_id=guild_id, client_id=client_id).run(token)

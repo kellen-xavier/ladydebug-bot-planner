@@ -140,3 +140,74 @@ def test_inicio_retoma_atividades_do_dia_anterior(storage, clock):
     assert "trabalho de ontem" in msg
     assert "tarefa pendente de ontem" in msg
     assert "🟢 Dia iniciado" in msg
+
+
+def test_inicio_com_dia_aberto_retorna_mensagem_amigavel(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    msg = router.inicio("u1", "c1")
+
+    assert msg == "🟡 Já existe um dia aberto para você. Use `/continuar` para seguir o seu dia."
+
+
+def test_continuar_com_dia_aberto_permite_seguir_o_dia(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    router.inicio("u1", "c1")
+    msg = router.continuar("u1")
+    note_msg = router.nota("u1", "continuei as atividades")
+
+    assert "Dia aberto desde 08:32" in msg
+    assert note_msg == "📝 Nota registrada."
+    assert len(storage.get_open_session("u1").entries) == 1
+
+
+def test_continuar_sem_dia_aberto_orienta_inicio(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    msg = router.continuar("u1")
+
+    assert msg == "⚠️ Nenhum dia aberto. Use /inicio primeiro."
+
+
+def test_nota_sem_dia_aberto_retorna_mensagem_amigavel(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    msg = router.nota("u1", "sem inicio")
+
+    assert msg == "⚠️ Nenhum dia aberto. Use /inicio primeiro."
+
+
+def test_fim_sem_dia_aberto_retorna_mensagem_amigavel(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    msg = router.fim("u1")
+
+    assert msg == "⚠️ Nenhum dia aberto para fechar. Use /inicio para começar."
+
+
+def test_link_sem_dia_aberto_retorna_mensagem_amigavel(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FailingFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    msg = router.link("u1", "https://exemplo.com/doc")
+
+    assert msg == "⚠️ Nenhum dia aberto. Use /inicio primeiro."

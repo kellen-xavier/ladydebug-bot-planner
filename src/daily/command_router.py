@@ -6,7 +6,7 @@ o retorno. Nenhuma regra de negócio vive nos adaptadores de plataforma.
 
 from __future__ import annotations
 
-from daily.core.day_service import DayService
+from daily.core.day_service import DayAlreadyOpen, DayService, NoOpenDay
 from daily.core.link_ingest import LinkIngestor
 from daily.core.models import Entry, EntryType
 from daily.core.report import build_recap, build_report
@@ -29,21 +29,41 @@ class CommandRouter:
     def inicio(self, user_id: str, channel_id: str) -> str:
         previous = self._storage.get_last_closed_session(user_id)
         tasks = self._storage.list_tasks()
-        s = self._day.start_day(user_id, channel_id)
+        try:
+            s = self._day.start_day(user_id, channel_id)
+        except DayAlreadyOpen:
+            return "🟡 Já existe um dia aberto para você. Use `/continuar` para seguir o seu dia."
         msg = f"🟢 Dia iniciado às {s.started_at.strftime('%H:%M')}."
         recap = build_recap(previous, tasks)
         return f"{recap}\n\n{msg}" if recap else msg
 
+    def continuar(self, user_id: str) -> str:
+        session = self._storage.get_open_session(user_id)
+        if session is None:
+            return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
+        return (
+            f"🟢 Dia aberto desde {session.started_at.strftime('%H:%M')}. "
+            "Pode seguir registrando suas atividades."
+        )
+
     def nota(self, user_id: str, texto: str) -> str:
-        self._day.add_entry(user_id, Entry(type=EntryType.NOTA, raw_input=texto, title=texto))
+        try:
+            self._day.add_entry(user_id, Entry(type=EntryType.NOTA, raw_input=texto, title=texto))
+        except NoOpenDay:
+            return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
         return "📝 Nota registrada."
 
     def link(self, user_id: str, url: str, comentario: str = "") -> str:
+        if self._storage.get_open_session(user_id) is None:
+            return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
         try:
             entry = self._ingestor.ingest(url, comentario)
         except Exception:
             return "⚠️ Não consegui processar esse link agora. Tente novamente mais tarde."
-        self._day.add_entry(user_id, entry)
+        try:
+            self._day.add_entry(user_id, entry)
+        except NoOpenDay:
+            return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
         return f"🔗 Registrado: {entry.title}"
 
     def task_nova(self, titulo: str) -> str:
@@ -61,5 +81,8 @@ class CommandRouter:
         return "💬 Feedback salvo."
 
     def fim(self, user_id: str) -> str:
-        session = self._day.close_day(user_id)
+        try:
+            session = self._day.close_day(user_id)
+        except NoOpenDay:
+            return "⚠️ Nenhum dia aberto para fechar. Use /inicio para começar."
         return build_report(session, self._storage.list_tasks())

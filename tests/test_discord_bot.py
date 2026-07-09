@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from daily.adapters.discord_bot import _record_voice_event, _sync_commands
+from daily.adapters.discord_bot import _invite_url, _record_voice_event, _sync_commands
 
 
 class FakeGuild:
@@ -14,6 +14,7 @@ class FakeClient:
     def __init__(self, guilds) -> None:
         self.guilds = guilds
         self.closed = False
+        self.user = None
 
     async def close(self) -> None:
         self.closed = True
@@ -57,6 +58,19 @@ def test_sync_commands_fecha_cliente_quando_guild_nao_esta_visivel(capsys):
     assert tree.synced is False
     assert "DISCORD_GUILD_ID=123" in output
     assert "Servidores visiveis para este bot: nenhum" in output
+    assert "Requires OAuth2 Code Grant" in output
+
+
+def test_sync_commands_mostra_url_de_convite_quando_client_id_informado(capsys):
+    client = FakeClient(guilds=[])
+    tree = FakeTree()
+
+    synced = asyncio.run(_sync_commands(tree, client, "123", client_id="456"))
+
+    output = capsys.readouterr().out
+    assert synced is False
+    assert _invite_url("456") in output
+    assert "DISCORD_TOKEN" in output
 
 
 def test_sync_commands_sincroniza_quando_guild_esta_visivel():
