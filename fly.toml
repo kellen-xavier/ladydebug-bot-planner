@@ -1,0 +1,19 @@
+app = "ladydebug-bot-planner"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DB_PATH = "/data/daily.db"
+  DISCORD_REPORT_CHANNEL_NAME = "release-notes"
+
+[processes]
+  app = "python -m daily.main"
+
+# Para persistir o SQLite entre deploys/restarts, crie um volume no Fly e
+# descomente este bloco:
+#
+# [[mounts]]
+#   source = "data"
+#   destination = "/data"
