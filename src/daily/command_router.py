@@ -66,6 +66,21 @@ class CommandRouter:
             return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
         return f"🔗 Registrado: {entry.title}"
 
+    def pr(self, user_id: str, url: str, comentario: str = "") -> str:
+        if self._storage.get_open_session(user_id) is None:
+            return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
+        try:
+            entry = self._ingestor.ingest(url, comentario)
+        except Exception:
+            return "⚠️ Não consegui processar esse PR agora. Tente novamente mais tarde."
+        if entry.type is not EntryType.PR:
+            return "⚠️ A URL informada não parece ser um Pull Request."
+        try:
+            self._day.add_entry(user_id, entry)
+        except NoOpenDay:
+            return "⚠️ Nenhum dia aberto. Use /inicio primeiro."
+        return f"🔀 PR registrado: {entry.title}"
+
     def task_nova(self, titulo: str) -> str:
         t = self._tasks.create_task(titulo)
         return f"🗂 Tarefa criada [{t.id}]: {titulo}"

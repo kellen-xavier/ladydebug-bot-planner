@@ -2,7 +2,12 @@ import asyncio
 import logging
 
 from daily.adapters import discord_bot
-from daily.adapters.discord_bot import _invite_url, _record_voice_event, _sync_commands
+from daily.adapters.discord_bot import (
+    _find_text_channel,
+    _invite_url,
+    _record_voice_event,
+    _sync_commands,
+)
 
 
 class FakeGuild:
@@ -19,6 +24,32 @@ class FakeClient:
 
     async def close(self) -> None:
         self.closed = True
+
+
+class FakeTextChannel:
+    def __init__(self, channel_id: int, name: str) -> None:
+        self.id = channel_id
+        self.name = name
+        self.mention = f"<#{channel_id}>"
+
+    async def send(self, message: str) -> None:
+        self.message = message
+
+
+class FakeDiscordGuild:
+    def __init__(self, channels) -> None:
+        self.text_channels = channels
+
+    def get_channel(self, channel_id: int):
+        for channel in self.text_channels:
+            if channel.id == channel_id:
+                return channel
+        return None
+
+
+class FakeInteraction:
+    def __init__(self, guild) -> None:
+        self.guild = guild
 
 
 class FakeTree:
@@ -118,6 +149,34 @@ def test_sync_commands_fecha_cliente_quando_discord_forbidden(monkeypatch, capsy
     assert client.closed is True
     assert "DISCORD_GUILD_ID=123" in output
     assert _invite_url("456") in output
+
+
+def test_find_text_channel_prefere_id_configurado():
+    release = FakeTextChannel(10, "release-notes")
+    reports = FakeTextChannel(20, "reports")
+    interaction = FakeInteraction(FakeDiscordGuild([release, reports]))
+
+    channel = _find_text_channel(interaction, "20", "release-notes")
+
+    assert channel is reports
+
+
+def test_find_text_channel_usa_nome_release_notes_como_fallback():
+    release = FakeTextChannel(10, "release-notes")
+    interaction = FakeInteraction(FakeDiscordGuild([release]))
+
+    channel = _find_text_channel(interaction, None, "release-notes")
+
+    assert channel is release
+
+
+def test_find_text_channel_retorna_none_quando_nao_encontra_canal():
+    interaction = FakeInteraction(FakeDiscordGuild([]))
+
+    channel = _find_text_channel(interaction, "abc", "release-notes")
+
+    assert channel is None
+
 
 
 def test_record_voice_event_loga_falha_sem_dados_sensiveis(caplog):

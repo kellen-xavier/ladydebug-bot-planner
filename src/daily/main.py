@@ -38,6 +38,12 @@ def discord_config_from_env() -> tuple[str, str | None, str | None]:
     return token, guild_id, client_id
 
 
+def discord_report_channel_from_env() -> tuple[str | None, str | None]:
+    channel_id = _optional_numeric_env("DISCORD_REPORT_CHANNEL_ID")
+    channel_name = os.environ.get("DISCORD_REPORT_CHANNEL_NAME", "release-notes").strip()
+    return channel_id, channel_name or None
+
+
 def db_path_from_env() -> str:
     raw_path = os.environ.get("DB_PATH", "daily.db").strip()
     if not raw_path:
@@ -72,4 +78,11 @@ if __name__ == "__main__":  # pragma: no cover
     from daily.adapters.discord_bot import build_client
 
     token, guild_id, client_id = discord_config_from_env()
-    build_client(build_router(), guild_id=guild_id, client_id=client_id).run(token)
+    report_channel_id, report_channel_name = discord_report_channel_from_env()
+    build_client(
+        build_router(),
+        guild_id=guild_id,
+        client_id=client_id,
+        report_channel_id=report_channel_id,
+        report_channel_name=report_channel_name,
+    ).run(token)
