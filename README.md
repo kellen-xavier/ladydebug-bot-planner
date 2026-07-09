@@ -52,6 +52,9 @@ pytest
 Antes de produção, gere um lockfile para fixar versões transitivas e tornar builds
 reprodutíveis. Opções recomendadas para este projeto: `pip-tools` ou `uv`.
 
+Para deploy seguro, Docker local e Fly.io, consulte
+[`docs/deploy-and-docker.md`](docs/deploy-and-docker.md).
+
 ## Rodar o bot
 
 ```bash
@@ -162,33 +165,8 @@ servidor.
 ### Deploy no Fly.io
 
 O projeto inclui `Dockerfile` e `fly.toml`, porque o Fly não detecta este bot como
-framework web automaticamente. O bot roda como worker, sem porta HTTP.
-
-Configure secrets no Fly, nunca no repositório:
-
-```bash
-fly secrets set DISCORD_TOKEN=token_do_bot
-fly secrets set DISCORD_CLIENT_ID=seu_client_id
-fly secrets set DISCORD_GUILD_ID=seu_guild_id
-fly secrets set GITHUB_TOKEN=token_github
-fly secrets set DISCORD_REPORT_CHANNEL_ID=id_do_canal_release_notes
-```
-
-Para persistir o SQLite entre deploys/restarts, crie um volume na mesma região do
-app e descomente o bloco `[[mounts]]` em `fly.toml`:
-
-```bash
-fly volumes create data --region gru --size 1
-```
-
-Depois faça o deploy:
-
-```bash
-fly deploy
-```
-
-Se o app tiver outro nome no Fly, ajuste `app = "ladydebug-bot-planner"` em
-`fly.toml` antes do deploy.
+framework web automaticamente. O bot roda como worker, sem porta HTTP. Siga o guia
+completo em [`docs/deploy-and-docker.md`](docs/deploy-and-docker.md).
 
 ### Diagnóstico Discord
 
