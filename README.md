@@ -129,13 +129,13 @@ Exemplo minimo de `.env` local:
 
 ```env
 DISCORD_TOKEN=token_do_bot
-DISCORD_CLIENT_ID=1524200494522957946
-DISCORD_GUILD_ID=807481361916100628
+DISCORD_CLIENT_ID=seu_client_id
+DISCORD_GUILD_ID=seu_guild_id
 DB_PATH=daily.db
 # Opcional: canal onde o /fim publica o report. Se omitido, usa o nome release-notes.
 DISCORD_REPORT_CHANNEL_NAME=release-notes
 # Opcional: prefira o ID para evitar conflito se existirem canais com nomes iguais.
-# DISCORD_REPORT_CHANNEL_ID=123456789012345678
+# DISCORD_REPORT_CHANNEL_ID=id_do_canal_release_notes
 ```
 
 Quando `#release-notes` existir no servidor, `/fim` publica o report nesse canal e
@@ -149,8 +149,8 @@ persistente do servidor ou volume do container:
 
 ```env
 DISCORD_TOKEN=token_do_bot
-DISCORD_CLIENT_ID=1524200494522957946
-DISCORD_GUILD_ID=807481361916100628
+DISCORD_CLIENT_ID=seu_client_id
+DISCORD_GUILD_ID=seu_guild_id
 DB_PATH=/app/data/daily.db
 DISCORD_REPORT_CHANNEL_NAME=release-notes
 ```
@@ -158,6 +158,37 @@ DISCORD_REPORT_CHANNEL_NAME=release-notes
 Se quiser comandos globais em produção, deixe `DISCORD_GUILD_ID` vazio. A
 propagação de slash commands globais pode demorar mais que a sincronização por
 servidor.
+
+### Deploy no Fly.io
+
+O projeto inclui `Dockerfile` e `fly.toml`, porque o Fly não detecta este bot como
+framework web automaticamente. O bot roda como worker, sem porta HTTP.
+
+Configure secrets no Fly, nunca no repositório:
+
+```bash
+fly secrets set DISCORD_TOKEN=token_do_bot
+fly secrets set DISCORD_CLIENT_ID=seu_client_id
+fly secrets set DISCORD_GUILD_ID=seu_guild_id
+fly secrets set GITHUB_TOKEN=token_github
+fly secrets set DISCORD_REPORT_CHANNEL_ID=id_do_canal_release_notes
+```
+
+Para persistir o SQLite entre deploys/restarts, crie um volume na mesma região do
+app e descomente o bloco `[[mounts]]` em `fly.toml`:
+
+```bash
+fly volumes create data --region gru --size 1
+```
+
+Depois faça o deploy:
+
+```bash
+fly deploy
+```
+
+Se o app tiver outro nome no Fly, ajuste `app = "ladydebug-bot-planner"` em
+`fly.toml` antes do deploy.
 
 ### Diagnóstico Discord
 
