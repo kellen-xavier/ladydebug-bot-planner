@@ -1,19 +1,31 @@
-app = "ladydebug-bot-planner"
-primary_region = "gru"
+# fly.toml app configuration file generated for ladydebug-bot-planner on 2026-07-09T20:50:34Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'ladydebug-bot-planner'
+primary_region = 'gru'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  DB_PATH = "/data/daily.db"
-  DISCORD_REPORT_CHANNEL_NAME = "release-notes"
+  DB_PATH = '/data/daily.db'
+  DISCORD_REPORT_CHANNEL_NAME = 'release-notes'
 
 [processes]
-  app = "python -m daily.main"
+  app = 'python -m daily.main'
 
-# Para persistir o SQLite entre deploys/restarts, crie um volume no Fly e
-# descomente este bloco:
-#
-# [[mounts]]
-#   source = "data"
-#   destination = "/data"
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
