@@ -4,6 +4,12 @@ Bot de "daily updates" para **Discord**, com o núcleo já preparado para **Slac
 sem reescrita. Compila os movimentos do dia (notas, links, commits/PRs) e gera um
 report ao fechar o dia.
 
+> **Para equipes de engenharia:** o bot centraliza a gestão do dia a dia e o report
+> do `/fim` vira a *daily assíncrona* do time — um jeito simples e prático de praticar
+> os valores do **Extreme Programming (XP)**: Comunicação, Simplicidade, Feedback,
+> Coragem e Respeito. Veja o
+> [Tutorial de Reports para Equipes (XP)](docs/tutorial-reports-equipes-xp.md).
+
 ## Arquitetura (hexagonal / ports & adapters)
 
 ```txt
@@ -144,6 +150,11 @@ DISCORD_REPORT_CHANNEL_NAME=release-notes
 Quando `#release-notes` existir no servidor, `/fim` publica o report nesse canal e
 responde no canal de comandos apenas com uma confirmação efêmera. Se o canal não for
 encontrado, o bot mantém o comportamento seguro de enviar o report no canal atual.
+
+Para times que trabalham em conjunto, o
+[Tutorial de Reports para Equipes (XP)](docs/tutorial-reports-equipes-xp.md) mostra
+como usar esse canal como gestão centralizada e como cada report reflete os valores do
+Extreme Programming.
 
 ### Produção
 
