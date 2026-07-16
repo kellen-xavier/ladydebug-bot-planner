@@ -173,6 +173,14 @@ def build_client(
     async def task(interaction: discord.Interaction, titulo: str):
         await interaction.response.send_message(router.task_nova(titulo))
 
+    @tree.command(name="task-status", description="Lista as tarefas e seus status")
+    async def task_status(interaction: discord.Interaction):
+        await interaction.response.send_message(router.task_status())
+
+    @tree.command(name="task-finish", description="Conclui uma tarefa em aberto")
+    async def task_finish(interaction: discord.Interaction, task_id: str):
+        await interaction.response.send_message(router.task_finish(task_id))
+
     @tree.command(name="fim", description="Fecha o dia e gera o report")
     async def fim(interaction: discord.Interaction):
         report = router.fim(str(interaction.user.id))

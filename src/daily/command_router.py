@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from daily.core.day_service import DayAlreadyOpen, DayService, NoOpenDay
 from daily.core.link_ingest import LinkIngestor
-from daily.core.models import Entry, EntryType
+from daily.core.models import Entry, EntryType, TaskStatus
 from daily.core.report import build_recap, build_report
 from daily.core.task_service import TaskNotFound, TaskService
 
@@ -90,6 +90,15 @@ class CommandRouter:
         if not tasks:
             return "Nenhuma tarefa."
         return "\n".join(f"[{t.id}] {t.status.value} — {t.title}" for t in tasks)
+
+    def task_finish(self, task_id: str) -> str:
+        try:
+            task = self._tasks.finish(task_id)
+        except TaskNotFound:
+            return f"⚠️ Tarefa {task_id} não encontrada."
+        if task.status is TaskStatus.ACEITO:
+            return f"🔒 Tarefa [{task.id}] já está aceita e encerrada: {task.title}"
+        return f"✅ Tarefa concluída [{task.id}]: {task.title}"
 
     def feedback(self, task_id: str, texto: str) -> str:
         try:

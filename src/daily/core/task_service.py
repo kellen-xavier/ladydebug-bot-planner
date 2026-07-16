@@ -37,6 +37,21 @@ class TaskService:
         self._storage.save_task(task)
         return task
 
+    def finish(self, task_id: str) -> Task:
+        """Fecha uma tarefa em aberto, levando-a até 'Concluído'.
+
+        Aceita tarefas em 'Pendente' ou 'Em Andamento' e avança pelos estados
+        intermediários necessários, para que fechar seja um único passo. Tarefas
+        já 'Concluído' ou 'Aceito' são devolvidas sem alteração (idempotente),
+        sem levantar InvalidTransition.
+        """
+        task = self._require(task_id)
+        if task.status in (TaskStatus.CONCLUIDO, TaskStatus.ACEITO):
+            return task
+        if task.status is TaskStatus.PENDENTE:
+            self.advance(task_id, TaskStatus.EM_ANDAMENTO)
+        return self.advance(task_id, TaskStatus.CONCLUIDO)
+
     def add_feedback(self, task_id: str, feedback: str) -> Task:
         task = self._require(task_id)
         task.feedback = feedback
