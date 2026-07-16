@@ -52,6 +52,65 @@ def test_task_concluida_nao_conta_como_travada(storage, clock):
     assert svc.stalled_tasks(timedelta(days=2)) == []
 
 
+def test_finish_conclui_tarefa_pendente(storage, clock):
+    svc = TaskService(storage, clock)
+    t = svc.create_task("documentar setup")
+
+    finished = svc.finish(t.id)
+
+    # Fecha em um passo, mesmo saindo de Pendente (passa por Em Andamento).
+    assert finished.status is TaskStatus.CONCLUIDO
+
+
+def test_finish_conclui_tarefa_em_andamento(storage, clock):
+    svc = TaskService(storage, clock)
+    t = svc.create_task("subir pipeline")
+    svc.advance(t.id, TaskStatus.EM_ANDAMENTO)
+
+    finished = svc.finish(t.id)
+
+    assert finished.status is TaskStatus.CONCLUIDO
+
+
+def test_finish_e_idempotente_em_tarefa_concluida(storage, clock):
+    svc = TaskService(storage, clock)
+    t = svc.create_task("x")
+    svc.finish(t.id)
+
+    again = svc.finish(t.id)  # não deve levantar InvalidTransition
+
+    assert again.status is TaskStatus.CONCLUIDO
+
+
+def test_finish_nao_altera_tarefa_aceita(storage, clock):
+    svc = TaskService(storage, clock)
+    t = svc.create_task("x")
+    svc.advance(t.id, TaskStatus.EM_ANDAMENTO)
+    svc.advance(t.id, TaskStatus.CONCLUIDO)
+    svc.advance(t.id, TaskStatus.ACEITO)
+
+    kept = svc.finish(t.id)
+
+    assert kept.status is TaskStatus.ACEITO
+
+
+def test_finish_atualiza_last_activity(storage, clock):
+    svc = TaskService(storage, clock)
+    t = svc.create_task("x")
+    clock.advance(hours=2)
+
+    finished = svc.finish(t.id)
+
+    assert finished.last_activity_at == clock.now()
+
+
+def test_finish_tarefa_inexistente_falha_com_erro_controlado(storage, clock):
+    svc = TaskService(storage, clock)
+
+    with pytest.raises(TaskNotFound, match="Tarefa task-404 não encontrada"):
+        svc.finish("task-404")
+
+
 def test_add_feedback_atualiza_texto_e_atividade(storage, clock):
     svc = TaskService(storage, clock)
     task = svc.create_task("revisar PR")
