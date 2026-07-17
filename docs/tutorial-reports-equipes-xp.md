@@ -143,6 +143,10 @@ registrou ontem e quais tarefas seguem em aberto). Se um dia já estiver aberto,
 - `/pr` → registra um Pull Request (rejeita URLs que não sejam PR, deixando a intenção
   clara).
 - `/task` → cria uma tarefa na máquina de estados.
+- `/task-status` → lista as tarefas do time e em que estado cada uma está.
+- `/task-finish task_id:<id>` → **fecha uma tarefa depois de concluí-la**, levando-a a
+  _Concluído_ em um passo só. É o "task-done": ao terminar, você encerra o ciclo da
+  tarefa e isso fica visível no report.
 
 > **Comunicação + Feedback na prática:** todo link e todo PR entram no report com um
 > resumo. Quem lê entende o dia sem abrir 10 abas.
@@ -230,6 +234,9 @@ Os princípios do XP que sustentam o uso do report em equipe:
 - **Reabra sem medo**: se algo "Concluído" voltou a exigir trabalho, mova de volta para
   "Em Andamento". A máquina de estados existe para refletir a realidade.
 - **Feche o dia**: o report só existe no `/fim`. Sem fechar, o time não vê o seu dia.
+- **Feche a tarefa ao terminar**: use `/task-finish` assim que concluir. Tarefa que
+  fica "em aberto" para sempre polui o `/task-status` e esconde o progresso real
+  (feedback). Encerrar o ciclo é tão importante quanto abri-lo.
 
 ---
 

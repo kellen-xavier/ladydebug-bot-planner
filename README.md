@@ -86,7 +86,14 @@ set -a; source .env; set +a
 - `/link`: adicionar links importantes durante o desenvilvimento - exe: documentação
 - `/pr`: adiciona PRs abertos
 - `/task`: cria tarefas
+- `/task-status`: lista as tarefas e seus status
+- `/task-finish`: conclui uma tarefa em aberto (fecha após terminar)
 - `/fim`: e contagem de tempo em canal de voz (Discord)
+
+Use `/task-finish task_id:<id-da-tarefa>` para fechar uma tarefa depois de concluí-la.
+O `id` aparece na resposta do `/task` ao criar e também no `/task-status`. O comando
+leva a tarefa até **Concluído** em um único passo (mesmo saindo de _Pendente_) e é
+idempotente: tarefas já concluídas ou aceitas não geram erro.
 
 Use `/pr url:<url-do-pr>` para registrar um Pull Request explicitamente. URLs de PR
 também funcionam via `/link`, mas `/pr` **rejeita links que não sejam Pull Request** e

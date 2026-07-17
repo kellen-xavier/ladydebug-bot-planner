@@ -384,6 +384,46 @@ def test_task_status_lista_tarefas_com_status(storage, clock):
     assert f"[{created.id}] Pendente — Criar checklist" in msg
 
 
+def test_task_finish_conclui_tarefa_aberta(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+    created = tasks.create_task("Fechar issue 29")
+
+    msg = router.task_finish(created.id)
+
+    assert msg == f"✅ Tarefa concluída [{created.id}]: Fechar issue 29"
+    assert storage.get_task(created.id).status is TaskStatus.CONCLUIDO
+
+
+def test_task_finish_em_tarefa_aceita_avisa_que_esta_encerrada(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+    created = tasks.create_task("Tarefa aceita")
+    tasks.advance(created.id, TaskStatus.EM_ANDAMENTO)
+    tasks.advance(created.id, TaskStatus.CONCLUIDO)
+    tasks.advance(created.id, TaskStatus.ACEITO)
+
+    msg = router.task_finish(created.id)
+
+    assert msg == f"🔒 Tarefa [{created.id}] já está aceita e encerrada: Tarefa aceita"
+    assert storage.get_task(created.id).status is TaskStatus.ACEITO
+
+
+def test_task_finish_com_tarefa_inexistente_retorna_mensagem_amigavel(storage, clock):
+    day = DayService(storage, clock)
+    tasks = TaskService(storage, clock)
+    ingestor = LinkIngestor([], FakeFetcher(), FakeSummarizer())
+    router = CommandRouter(day, tasks, ingestor, storage)
+
+    msg = router.task_finish("task-inexistente")
+
+    assert msg == "⚠️ Tarefa task-inexistente não encontrada."
+
+
 def test_feedback_salva_texto_na_tarefa(storage, clock):
     day = DayService(storage, clock)
     tasks = TaskService(storage, clock)
